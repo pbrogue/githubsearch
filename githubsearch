@@ -1,0 +1,57 @@
+import requests
+import csv
+
+headers = {
+    'Authorization': 'token YOUR_TOKEN_HERE'
+}
+
+params = {
+    'q': 'location:Vienna language:javascript language:typescript language:nodejs'
+    ' followers:>1000 repos:>30',
+    'per_page': '100',
+    'page': '1',
+    'sort': 'followers'
+}
+
+base_url = 'https://api.github.com/search/users'
+
+def get_user_details(username):
+    url = f'https://api.github.com/users/{username}'
+    response = requests.get(url, headers=headers)
+    response_json = response.json()
+
+    repos_url = response_json['repos_url']
+    repos_response = requests.get(repos_url, headers=headers)
+    repos_json = repos_response.json()
+
+    contributions = sum([repo['contributions'] for repo in repos_json])
+    user_details = {
+        'username': response_json['login'],
+        'profile_url': response_json['html_url'],
+        'followers': response_json['followers'],
+        'repos': response_json['public_repos'],
+        'contributions': contributions
+    }
+    return user_details
+
+users = []
+
+for i in range(1, 11):
+    params['page'] = str(i)
+    response = requests.get(base_url, headers=headers, params=params)
+    response_json = response.json()
+    for item in response_json['items']:
+        user_details = get_user_details(item['login'])
+        users.append(user_details)
+
+users_sorted = sorted(users, key=lambda x: (x['followers'], x['repos'], x['contributions']), reverse=True)
+
+with open('candidates.csv', mode='w') as csv_file:
+    fieldnames = ['Username', 'Profile URL', 'Followers', 'Repos', 'Contributions']
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    writer.writeheader()
+    for user in users_sorted:
+        writer.writerow({'Username': user['username'], 'Profile URL': user['profile_url'], 'Followers': user['followers'], 'Repos': user['repos'], 'Contributions': user['contributions']})
+
+print('Done writing to candidates.csv')
+
