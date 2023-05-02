@@ -2,7 +2,7 @@ import requests
 import csv
 
 headers = {
-    'Authorization': 'token YOUR_TOKEN_HERE'
+    'Authorization': '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'
 }
 
 params = {
